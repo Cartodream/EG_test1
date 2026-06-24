@@ -62,7 +62,7 @@
     .name-field input {
       background: transparent; border: 1px solid var(--gold);
       color: var(--gold); padding: .55rem 1.1rem;
-      font-size: 1rem; font-family: 'Georgia', serif;
+      font-size: max(1rem, 16px); font-family: 'Georgia', serif;
       letter-spacing: .08em; text-align: center;
       width: 260px; outline: none;
       transition: box-shadow .2s;
@@ -310,6 +310,84 @@
     #victory h2  { font-size:2.4rem; font-weight:normal; color:var(--gold); margin-bottom:1rem; text-shadow:0 0 50px rgba(201,162,39,.55); }
     #victory p   { color:var(--muted); max-width:440px; line-height:1.85; margin-bottom:2rem; font-style:italic; }
     #victory .v-time { color:var(--gold); font-family:'Courier New',monospace; font-size:1.1rem; }
+
+    /* ─── GAME OVER ──────────────────────────────────── */
+    #game-over {
+      display:none; position:fixed; inset:0;
+      background:rgba(7,7,14,.97); z-index:360;
+      flex-direction:column; align-items:center;
+      justify-content:center; text-align:center; padding:2rem;
+    }
+    #game-over .eye { font-size:.72rem; letter-spacing:.45em; color:var(--ko); text-transform:uppercase; margin-bottom:1.4rem; }
+    #game-over h2  { font-size:2.4rem; font-weight:normal; color:var(--ko); margin-bottom:1rem; }
+    #game-over p   { color:var(--muted); max-width:440px; line-height:1.85; margin-bottom:2rem; font-style:italic; }
+
+    /* ═══════════════════════════════════════════════════
+       MOBILE  (≤ 600px)
+       ═══════════════════════════════════════════════════ */
+    @media (max-width: 600px) {
+
+      /* Welcome */
+      #welcome { padding: 1.2rem 1rem; justify-content: flex-start; padding-top: 1.8rem; }
+      #welcome .eye   { margin-bottom: .9rem; }
+      #welcome h1     { margin-bottom: .25rem; }
+      #welcome .tag   { margin-bottom: 1.2rem; font-size: .9rem; }
+      #welcome .story { font-size: .85rem; line-height: 1.7; margin-bottom: 1.3rem; padding: .75rem .95rem; }
+      .name-field { margin-bottom: 1.2rem; }
+      .name-field input { width: 90vw; max-width: 300px; padding: .75rem 1rem; font-size: 1rem; }
+      .btn { padding: .9rem 2rem; font-size: .85rem; width: 90vw; max-width: 300px; }
+
+      /* Header — masque le titre, compacte la progression */
+      #hdr { padding: 0 .7rem; }
+      #hdr .ttl { display: none; }
+      #hdr .prog { gap: .5rem; }
+
+      /* Code modal — scrollable, padding réduit */
+      #code-modal {
+        justify-content: flex-start;
+        padding: .7rem .5rem .4rem;
+        overflow-y: auto;
+      }
+      #cm-timer { font-size: .95rem; margin-bottom: .45rem; }
+      .cm-eye   { margin-bottom: .55rem; }
+      .cm-clue  {
+        font-size: .82rem; line-height: 1.6;
+        padding: .6rem .85rem; margin-bottom: .75rem;
+        max-height: 26vh; overflow-y: auto;
+      }
+      .cm-display { margin-bottom: .75rem; gap: .28rem; }
+      .cm-letter  { width: 36px; height: 43px; font-size: 1.15rem; }
+
+      /* Clavier AZERTY — touches flex, 46px de hauteur */
+      .cm-keyboard { width: 100%; gap: .2rem; }
+      .cm-row      { gap: .16rem; width: 100%; }
+      .cm-key {
+        width: auto; flex: 1; min-width: 0;
+        height: 46px; font-size: .74rem; border-radius: 4px;
+        padding: 0;
+      }
+      .cm-key.wide     { flex: 2;   font-size: .6rem; }
+      .cm-key.validate { flex: 2.4; font-size: .67rem; }
+      .cm-error { font-size: .74rem; margin-top: .35rem; }
+
+      /* Popup indice — remonte depuis le bas */
+      #clue-popup {
+        top: auto; left: 0; right: 0; bottom: 0;
+        width: 100%; max-height: 62vh;
+        transform: translateY(0);
+        border-radius: 16px 16px 0 0;
+        box-shadow: 0 -6px 40px rgba(0,0,0,.8);
+        overflow-y: auto;
+      }
+      #clue-popup.hidden { transform: translateY(106%); opacity: 0; }
+
+      /* Bouton revoir indice */
+      #clue-toggle { bottom: 10px; left: 10px; padding: 11px 16px; font-size: .8rem; }
+
+      /* Victoire / Game Over */
+      #victory h2, #game-over h2 { font-size: 1.8rem; }
+      #victory p, #game-over p   { font-size: .9rem; }
+    }
   </style>
 </head>
 <body>
@@ -338,6 +416,7 @@
     ⚠ Aucune configuration trouvée.<br>
     Ouvre <b>editor.html</b> pour créer les étapes du jeu, puis exporte <b>game_config.json</b> dans ce dossier.
   </div>
+  <button class="btn" id="btn-resume" style="display:none;margin-bottom:.9rem" onclick="resumeGame()">↩ Reprendre</button>
   <button class="btn" onclick="startGame()">Débuter l'enquête</button>
 </div>
 
@@ -356,7 +435,7 @@
 
   <div id="pano-vp">
     <div id="pano-strip">
-      <img class="pano-tile" id="pano-img" src="1ère image.png" alt="" draggable="false">
+      <img class="pano-tile" id="pano-img" src="" alt="" draggable="false">
     </div>
 
     <div class="vig vig-t"></div>
@@ -429,10 +508,18 @@
 <div id="victory">
   <div class="eye">Enquête résolue</div>
   <h2>Félicitations, <span id="victory-name"></span> !</h2>
-  <p>Vous avez retrouvé toutes les preuves. Le village peut reprendre son souffle.</p>
+  <p id="victory-msg">Vous avez retrouvé toutes les preuves. Le village peut reprendre son souffle.</p>
   <p class="v-time">Temps restant : <span id="victory-time"></span></p>
   <br>
   <button class="btn" onclick="restartGame()">Recommencer</button>
+</div>
+
+<!-- ════════════ GAME OVER ════════════ -->
+<div id="game-over">
+  <div class="eye">Temps écoulé</div>
+  <h2>L'enquête n'a pas abouti</h2>
+  <p>Le temps vous a manqué. Mais l'affaire n'est pas classée…</p>
+  <button class="btn" onclick="restartGame()">Rejouer</button>
 </div>
 
 <div id="penalty-flash">−1:00</div>
@@ -441,7 +528,6 @@
 // ═══════════════════════════════════════════════════════════
 //  CHIFFREMENT CÉSAR
 // ═══════════════════════════════════════════════════════════
-
 function caesar(text, shift) {
   const from = 'ÀÂÄÁÃÈÉÊËÎÏÌÍÔÖÒÓÙÚÛÜÝÇàâäáãèéêëîïìíôöòóùúûüýç';
   const to   = 'AAAAAEEEEIIIIOOOOUUUUYCaaaaaeeeeiiiioooouuuuyc';
@@ -455,7 +541,6 @@ function caesar(text, shift) {
   }).join('');
 }
 
-// Remplace {name} et {name_encoded} dans un texte de clue
 function renderClue(template) {
   const encoded = caesar(playerName, 3);
   return template
@@ -464,31 +549,35 @@ function renderClue(template) {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  CONFIG — chargée depuis game_config.json
+//  CONFIG
 // ═══════════════════════════════════════════════════════════
-let PANO_W = 1360;
-let PANO_H = 972;
-let STEPS  = [];
+let PANO_W     = 1360;
+let PANO_H     = 972;
+let STEPS      = [];
+let victoryMsg = '';
+
+const TOAST_MS = 3500;
 
 // ═══════════════════════════════════════════════════════════
 //  ÉTAT
 // ═══════════════════════════════════════════════════════════
-let playerName   = '';
-let panX         = 0;
-let centerOffset = 0;
-let panVel       = 0;
-let rafId        = null;
-let isDrag       = false;
-let didDrag      = false;
-let dragStartX   = 0;
-let dragStartPan = 0;
-let lastMoveX    = 0;
-let lastMoveT    = 0;
-let curStep      = 0;
-let curPhase     = 'code';   // 'code' | 'click'
-let codeInput    = '';
-let won          = false;
-let hintShown    = false;
+let playerName    = '';
+let panX          = 0;
+let centerOffset  = 0;
+let panVel        = 0;
+let rafId         = null;
+let isDrag        = false;
+let didDrag       = false;
+let dragStartX    = 0;
+let dragStartPan  = 0;
+let lastMoveX     = 0;
+let lastMoveT     = 0;
+let curStep       = 0;
+let curPhase      = 'code';
+let codeInput     = '';
+let won           = false;
+let hintShown     = false;
+let gameStarted   = false;
 let timerInterval = null;
 let timerSeconds  = 3600;
 let toastTmr;
@@ -501,12 +590,8 @@ function getScale() { return getVP().offsetHeight / PANO_H; }
 
 function screenToPano(sx, sy) {
   const sc = getScale();
-  return {
-    px: (sx - centerOffset + panX) / sc,
-    py: sy / sc
-  };
+  return { px: (sx - centerOffset + panX) / sc, py: sy / sc };
 }
-
 function panoToScreen(px, py) {
   const sc = getScale();
   return { sx: px * sc - panX + centerOffset, sy: py * sc };
@@ -559,7 +644,6 @@ function onMouseDown(e) {
   getVP().classList.add('dragging');
   e.preventDefault();
 }
-
 function onMouseMove(e) {
   if (!isDrag) return;
   const dx = e.clientX - lastMoveX;
@@ -569,7 +653,6 @@ function onMouseMove(e) {
   if (Math.abs(dragStartX - e.clientX) > 10) didDrag = true;
   applyPan(dragStartPan + (dragStartX - e.clientX));
 }
-
 function onMouseUp(e) {
   if (!isDrag) return;
   isDrag = false;
@@ -589,7 +672,6 @@ function onTouchStart(e) {
   dragStartX = t.clientX; dragStartPan = panX;
   lastMoveX = t.clientX; lastMoveT = Date.now();
 }
-
 function onTouchMove(e) {
   if (!isDrag) return;
   e.preventDefault();
@@ -601,7 +683,6 @@ function onTouchMove(e) {
   if (Math.abs(dragStartX - t.clientX) > 6) didDrag = true;
   applyPan(dragStartPan + (dragStartX - t.clientX));
 }
-
 function onTouchEnd(e) {
   if (!isDrag) return;
   isDrag = false;
@@ -620,7 +701,13 @@ function handleClick(e) {
   const { px, py } = screenToPano(e.clientX - rect.left, e.clientY - rect.top);
   const step = STEPS[curStep];
   const z = step.zone;
-  const hit = px >= z.x && px <= z.x + z.w && py >= z.y && py <= z.y + z.h;
+  if (!z || z.w === 0) return;
+
+  // Tolérance tactile : 20px écran converti en coordonnées image
+  const sc  = getScale();
+  const PAD = window.matchMedia('(pointer: coarse)').matches ? Math.round(20 / sc) : 0;
+  const hit = px >= z.x - PAD && px <= z.x + z.w + PAD &&
+              py >= z.y - PAD && py <= z.y + z.h + PAD;
 
   spawnRipple(e.clientX - rect.left, e.clientY - rect.top, hit ? 'ok' : 'ko');
 
@@ -630,6 +717,7 @@ function handleClick(e) {
     if (curStep >= STEPS.length) {
       won = true;
       clearInterval(timerInterval);
+      clearSave();
       closeClue();
       const h = Math.floor(timerSeconds / 3600);
       const m = Math.floor((timerSeconds % 3600) / 60);
@@ -637,8 +725,11 @@ function handleClick(e) {
       document.getElementById('victory-name').textContent = playerName;
       document.getElementById('victory-time').textContent =
         `${h}h ${String(m).padStart(2,'0')}min ${String(s).padStart(2,'0')}s`;
+      document.getElementById('victory-msg').textContent =
+        victoryMsg || 'Vous avez retrouvé toutes les preuves. Le village peut reprendre son souffle.';
       setTimeout(() => { document.getElementById('victory').style.display = 'flex'; }, 2200);
     } else {
+      saveProgress();
       setTimeout(() => showPhase('code'), 1900);
     }
   } else {
@@ -665,15 +756,12 @@ function showPhase(phase) {
   setStepImage(step);
 
   const lbl = `Énigme ${curStep + 1} / ${STEPS.length}`;
-
-  // Update progress dots
   document.getElementById('prog-txt').textContent = lbl;
   document.querySelectorAll('.sd').forEach((d, i) => {
     d.className = 'sd' + (i < curStep ? ' done' : '') + (i === curStep ? ' cur' : '');
   });
 
   if (phase === 'code' && step.code) {
-    // ── Phase 1 : saisie du code
     document.getElementById('phase-badge').textContent = '🔐 Code';
     document.getElementById('phase-badge').className = 'code';
     codeInput = '';
@@ -684,19 +772,28 @@ function showPhase(phase) {
     document.getElementById('code-modal').classList.remove('hidden');
     document.getElementById('clue-popup').classList.add('hidden');
     document.getElementById('clue-toggle').classList.remove('visible');
+    saveProgress();
   } else {
-    // ── Phase 2 : clic sur l'image
     curPhase = 'click';
     document.getElementById('phase-badge').textContent = '🗺 Trouver';
     document.getElementById('phase-badge').className = 'click';
     document.getElementById('code-modal').classList.add('hidden');
-    // Clue popup shows the Phase 2 instruction
+
+    // Vérification de la zone
+    const z = step.zone;
+    if (!z || z.w === 0) {
+      showToast('Zone non définie pour cette étape — étape ignorée.', 'ko');
+      curStep++;
+      if (curStep < STEPS.length) setTimeout(() => showPhase('code'), 2200);
+      return;
+    }
+
     const clue2text = step.success || step.clue;
     document.getElementById('clue-txt').textContent = renderClue(clue2text);
     document.getElementById('clue-lbl').textContent = lbl;
     openClue();
+    saveProgress();
   }
-
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -710,14 +807,12 @@ function pressKey(letter) {
   renderCodeDisplay();
   if (codeInput.length === maxLen) setTimeout(validateCode, 280);
 }
-
 function backspace() {
   if (!codeInput.length) return;
   codeInput = codeInput.slice(0, -1);
   document.getElementById('cm-error').textContent = '';
   renderCodeDisplay();
 }
-
 function renderCodeDisplay() {
   const maxLen = (STEPS[curStep]?.code || '').length;
   const display = document.getElementById('cm-display');
@@ -729,12 +824,10 @@ function renderCodeDisplay() {
     display.appendChild(box);
   }
 }
-
 function validateCode() {
   const step = STEPS[curStep];
   const expected = (step?.code || '').toUpperCase().trim();
   if (!codeInput.length) return;
-
   if (codeInput === expected) {
     showToast(step.success || 'Code correct !', 'ok');
     setTimeout(() => showPhase('click'), 1200);
@@ -754,7 +847,6 @@ function validateCode() {
   }
 }
 
-// Physical keyboard
 document.addEventListener('keydown', e => {
   if (curPhase === 'code' && !document.getElementById('code-modal').classList.contains('hidden')) {
     if (e.key === 'Backspace') { e.preventDefault(); backspace(); return; }
@@ -783,11 +875,7 @@ function updateMinimap() {
   const imgW = PANO_W * sc;
   const vpW  = getVP().offsetWidth;
   const th   = document.getElementById('mm-thumb');
-  if (imgW <= vpW) {
-    th.style.width = '100%';
-    th.style.left  = '0%';
-    return;
-  }
+  if (imgW <= vpW) { th.style.width = '100%'; th.style.left = '0%'; return; }
   const ratio  = vpW / imgW;
   const offset = panX / imgW;
   th.style.width = (ratio * 100).toFixed(2) + '%';
@@ -797,18 +885,20 @@ function updateMinimap() {
 // ═══════════════════════════════════════════════════════════
 //  TIMER & PENALTY
 // ═══════════════════════════════════════════════════════════
-function startTimer() {
+function startTimer(seconds = 3600) {
   clearInterval(timerInterval);
-  timerSeconds = 3600;
+  timerSeconds = seconds;
   renderTimer();
   timerInterval = setInterval(() => {
     if (won) return;
     timerSeconds--;
     renderTimer();
+    if (timerSeconds % 10 === 0) saveProgress();
     if (timerSeconds <= 0) {
       clearInterval(timerInterval);
-      document.getElementById('timer').textContent = '0:00:00';
-      showToast("Temps écoulé ! L'enquête n'a pas abouti.", 'ko');
+      timerSeconds = 0;
+      renderTimer();
+      document.getElementById('game-over').style.display = 'flex';
     }
   }, 1000);
 }
@@ -819,12 +909,10 @@ function renderTimer() {
   const s   = timerSeconds % 60;
   const txt = `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
   const warn = timerSeconds <= 300;
-  const el = document.getElementById('timer');
-  el.textContent = txt;
-  el.classList.toggle('warning', warn);
-  const cm = document.getElementById('cm-timer');
-  cm.textContent = txt;
-  cm.classList.toggle('warning', warn);
+  document.getElementById('timer').textContent = txt;
+  document.getElementById('timer').classList.toggle('warning', warn);
+  document.getElementById('cm-timer').textContent = txt;
+  document.getElementById('cm-timer').classList.toggle('warning', warn);
 }
 
 function applyPenalty() {
@@ -843,7 +931,41 @@ function showToast(msg, type) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.className = 'show ' + type;
   clearTimeout(toastTmr);
-  toastTmr = setTimeout(() => { t.className = ''; }, 3600);
+  toastTmr = setTimeout(() => { t.className = ''; }, TOAST_MS);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SAUVEGARDE / REPRISE
+// ═══════════════════════════════════════════════════════════
+function saveProgress() {
+  if (!gameStarted || won) return;
+  try {
+    localStorage.setItem('escape_game_save', JSON.stringify({
+      playerName, curStep, timerSeconds, curPhase
+    }));
+  } catch(e) {}
+}
+
+function getSavedGame() {
+  try {
+    const raw = localStorage.getItem('escape_game_save');
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+function clearSave() {
+  localStorage.removeItem('escape_game_save');
+}
+
+function resumeGame() {
+  if (gameStarted) return;
+  const save = getSavedGame();
+  if (!save || !STEPS.length) return;
+  gameStarted  = true;
+  playerName   = save.playerName;
+  curStep      = Math.min(save.curStep || 0, STEPS.length - 1);
+  timerSeconds = save.timerSeconds || 3600;
+  launchGame(save.curPhase || 'code');
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -852,6 +974,7 @@ function showToast(msg, type) {
 async function loadConfig() {
   try {
     const cfg = await fetch('game_config.json').then(r => r.json());
+    victoryMsg = cfg.victoryMessage || '';
     STEPS = (cfg.steps || []).map(s => ({
       image:        s.image        || '',
       imageWidth:   s.imageWidth   || PANO_W,
@@ -887,14 +1010,23 @@ function setStepImage(step) {
 //  INIT
 // ═══════════════════════════════════════════════════════════
 function startGame() {
-  const nameInput = document.getElementById('player-name-input');
-  playerName = nameInput.value.trim() || 'Joueur';
+  if (gameStarted) return;
+  if (STEPS.length === 0) {
+    showToast("Aucune étape configurée. Crée d'abord le jeu dans l'éditeur.", 'ko');
+    return;
+  }
+  gameStarted  = true;
+  playerName   = document.getElementById('player-name-input').value.trim() || 'Joueur';
+  timerSeconds = 3600;
+  clearSave();
+  launchGame('code');
+}
 
+function launchGame(initialPhase = 'code') {
   document.getElementById('welcome').style.display = 'none';
   document.getElementById('game').style.display = 'flex';
   document.getElementById('hdr-ttl').textContent = `Village Mystère · ${playerName}`;
 
-  // Build progress dots
   const sd = document.getElementById('sdots');
   sd.innerHTML = '';
   STEPS.forEach((_, i) => {
@@ -903,7 +1035,6 @@ function startGame() {
     sd.appendChild(d);
   });
 
-  // Wire events
   const vp = getVP();
   vp.addEventListener('mousedown',  onMouseDown);
   vp.addEventListener('mousemove',  onMouseMove);
@@ -917,27 +1048,35 @@ function startGame() {
     if (!hintShown) {
       hintShown = true;
       const hint = document.getElementById('drag-hint');
-      hint.style.opacity = '0';
-      setTimeout(() => hint.remove(), 600);
+      if (hint) { hint.style.opacity = '0'; setTimeout(() => hint.remove(), 600); }
     }
   }, { once: true });
 
   window.addEventListener('resize', () => applyPan(panX));
 
   requestAnimationFrame(() => applyPan(0));
-  startTimer();
-  showPhase('code');
+  startTimer(timerSeconds);
+  showPhase(initialPhase);
 }
 
 function restartGame() {
   won = false; curStep = 0;
-  document.getElementById('victory').style.display = 'none';
+  clearSave();
+  document.getElementById('victory').style.display   = 'none';
+  document.getElementById('game-over').style.display = 'none';
   applyPan(0);
-  startTimer();
+  startTimer(3600);
   showPhase('code');
 }
 
-loadConfig();
+loadConfig().then(() => {
+  const save = getSavedGame();
+  if (save && STEPS.length > 0 && (save.curStep || 0) < STEPS.length) {
+    const btn = document.getElementById('btn-resume');
+    btn.textContent = `↩ Reprendre — ${save.playerName}`;
+    btn.style.display = 'block';
+  }
+});
 </script>
 </body>
 </html>

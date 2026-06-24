@@ -1,4 +1,5 @@
 {
+  "victoryMessage": "Vous avez retrouvé toutes les preuves. Le village peut reprendre son souffle.",
   "steps": [
     {
       "order": 1,
