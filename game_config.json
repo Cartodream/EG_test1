@@ -32,6 +32,22 @@
         "w": 79,
         "h": 118
       }
+    },
+    {
+      "order": 3,
+      "image": "Image3.png",
+      "imageWidth": 1957,
+      "imageHeight": 700,
+      "clue": "Il peut être de Pékin, des vanniers, blancs ou encore pleureur. Qui suis-je ?",
+      "code": "SAULE",
+      "success": "Bravo, tu ne devrais pas avoir de mal à trouver là où j'ai cacher le nom de celui qui me poursuit",
+      "successFinal": "Excellent tu as trouvé l'enveloppe. Il ne te reste plus qu'à aller voir la police pour qu'elle arrête le coupable !",
+      "zone": {
+        "x": 1186,
+        "y": 123,
+        "w": 232,
+        "h": 178
+      }
     }
   ]
 }
