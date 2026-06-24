@@ -272,6 +272,75 @@
     #clue-toggle:hover { background:var(--gold-d); box-shadow:0 0 12px rgba(201,162,39,.3); }
     #clue-toggle.visible { display:block; }
 
+    #vp-hint-btn {
+      position:absolute; bottom:18px; right:16px; z-index:6;
+      background:rgba(7,7,14,.88); border:1px solid var(--muted);
+      color:var(--muted); font-size:.74rem; letter-spacing:.12em;
+      text-transform:uppercase; padding:6px 14px; cursor:pointer; display:none;
+      transition:background .2s, border-color .2s, color .2s;
+    }
+    #vp-hint-btn:hover { background:rgba(92,184,232,.08); border-color:#5cb8e8; color:#5cb8e8; }
+
+    /* ─── HINT CONFIRM ───────────────────────────────── */
+    #hint-confirm {
+      display:none; position:fixed; inset:0; z-index:220;
+      background:rgba(7,7,14,.88);
+      align-items:center; justify-content:center; padding:1rem;
+    }
+    #hint-confirm.show { display:flex; }
+    .hc-box {
+      background:var(--surface); border:1px solid var(--gold);
+      box-shadow:0 0 60px rgba(201,162,39,.2);
+      max-width:340px; width:100%; padding:1.8rem 1.6rem; text-align:center;
+    }
+    .hc-box .hc-icon { font-size:1.8rem; margin-bottom:.7rem; }
+    .hc-box p { color:var(--text); line-height:1.75; margin-bottom:1.4rem; }
+    .hc-box strong { color:var(--ko); }
+    .hc-btns { display:flex; gap:.7rem; justify-content:center; flex-wrap:wrap; }
+    .hc-btns button {
+      padding:.6rem 1.3rem; font-size:.78rem; cursor:pointer;
+      border:1px solid; letter-spacing:.12em; text-transform:uppercase;
+      font-family:inherit; background:transparent;
+      transition:background .18s, border-color .18s;
+    }
+    .hc-btn-ok { border-color:var(--ko); color:var(--ko); }
+    .hc-btn-ok:hover { background:rgba(224,82,82,.14); }
+    .hc-btn-no { border-color:var(--border); color:var(--muted); }
+    .hc-btn-no:hover { border-color:var(--muted); color:var(--text); }
+
+    /* ─── HINT POPUP ─────────────────────────────────── */
+    #hint-popup {
+      position:fixed; top:50%; left:50%;
+      transform:translate(-50%,-50%) scale(1);
+      width:min(520px,90vw);
+      background:rgba(7,7,14,.97); border:1px solid #5cb8e8;
+      box-shadow:0 0 60px rgba(92,184,232,.2), 0 20px 60px rgba(0,0,0,.7);
+      z-index:230; transition:transform .3s cubic-bezier(.22,1,.36,1), opacity .3s;
+    }
+    #hint-popup.hidden { transform:translate(-50%,-50%) scale(.92); opacity:0; pointer-events:none; }
+    #hint-popup .hp-head {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:.7rem 1rem .6rem; border-bottom:1px solid rgba(92,184,232,.25);
+    }
+    #hint-popup .hp-lbl { font-size:.65rem; letter-spacing:.38em; color:#5cb8e8; text-transform:uppercase; }
+    #hint-popup .hp-head button {
+      background:transparent; border:1px solid var(--border); color:var(--muted);
+      font-size:.7rem; padding:3px 9px; cursor:pointer; letter-spacing:.1em;
+      text-transform:uppercase; transition:border-color .15s, color .15s;
+    }
+    #hint-popup .hp-head button:hover { border-color:#5cb8e8; color:#5cb8e8; }
+    #hint-popup .hp-body { padding:1.2rem 1.2rem 1.4rem; font-style:italic; line-height:1.8; font-size:.96rem; white-space:pre-line; }
+
+    /* ─── HINT BTN IN CODE MODAL ─────────────────────── */
+    #cm-hint-row { text-align:center; margin-top:.6rem; display:none; }
+    #cm-hint-row button {
+      background:transparent; border:1px solid var(--border); color:var(--muted);
+      padding:.4rem 1rem; font-size:.72rem; cursor:pointer; letter-spacing:.12em;
+      text-transform:uppercase; font-family:inherit;
+      transition:border-color .15s, color .15s;
+    }
+    #cm-hint-row button:hover { border-color:#5cb8e8; color:#5cb8e8; }
+
     /* ─── PENALTY FLASH ───────────────────────────────── */
     #penalty-flash {
       position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
@@ -384,6 +453,20 @@
       /* Bouton revoir indice */
       #clue-toggle { bottom: 10px; left: 10px; padding: 11px 16px; font-size: .8rem; }
 
+      /* Bouton indice viewport */
+      #vp-hint-btn { bottom: 10px; right: 10px; padding: 11px 16px; font-size: .8rem; }
+
+      /* Hint popup — remonte depuis le bas */
+      #hint-popup {
+        top: auto; left: 0; right: 0; bottom: 0;
+        width: 100%; max-height: 62vh;
+        transform: translateY(0);
+        border-radius: 16px 16px 0 0;
+        box-shadow: 0 -6px 40px rgba(0,0,0,.8);
+        overflow-y: auto;
+      }
+      #hint-popup.hidden { transform: translateY(106%); opacity: 0; }
+
       /* Victoire / Game Over */
       #victory h2, #game-over h2 { font-size: 1.8rem; }
       #victory p, #game-over p   { font-size: .9rem; }
@@ -445,6 +528,7 @@
 
     <div id="drag-hint">← Glisser pour explorer →</div>
     <button id="clue-toggle" onclick="openClue()">💡 Revoir l'indice</button>
+    <button id="vp-hint-btn" onclick="openHintConfirm()">💡 Indice −1 min</button>
     <div id="minimap"><div id="mm-thumb"></div></div>
   </div>
 
@@ -493,6 +577,9 @@
     </div>
   </div>
   <div class="cm-error" id="cm-error"></div>
+  <div id="cm-hint-row">
+    <button onclick="openHintConfirm()">💡 Voir un indice (−1 min)</button>
+  </div>
 </div>
 
 <!-- ════════════ CLUE POPUP ════════════ -->
@@ -524,9 +611,30 @@
 
 <div id="penalty-flash">−1:00</div>
 <div id="toast"></div>
+
+<!-- ════════════ HINT CONFIRM ════════════ -->
+<div id="hint-confirm">
+  <div class="hc-box">
+    <div class="hc-icon">💡</div>
+    <p>Consulter un indice vous coûtera<br><strong>−1 minute</strong>.</p>
+    <div class="hc-btns">
+      <button class="hc-btn-ok" onclick="confirmHint()">Oui, voir l'indice</button>
+      <button class="hc-btn-no" onclick="closeHintConfirm()">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ HINT POPUP ════════════ -->
+<div id="hint-popup" class="hidden">
+  <div class="hp-head">
+    <span class="hp-lbl">💡 Indice</span>
+    <button onclick="closeHint()">Fermer ✕</button>
+  </div>
+  <div class="hp-body" id="hint-txt"></div>
+</div>
 <script>
 // ═══════════════════════════════════════════════════════════
-//  CHIFFREMENT CÉSAR
+//  CHIFFREMENT CÉSAR  (from=46 chars, to=46 chars)
 // ═══════════════════════════════════════════════════════════
 function caesar(text, shift) {
   const from = 'ÀÂÄÁÃÈÉÊËÎÏÌÍÔÖÒÓÙÚÛÜÝÇàâäáãèéêëîïìíôöòóùúûüýç';
@@ -553,7 +661,7 @@ function renderClue(template) {
 // ═══════════════════════════════════════════════════════════
 let PANO_W     = 1360;
 let PANO_H     = 972;
-let STEPS      = [];
+let STEPS      = [];   // liste plate de défis {type, image?, clue, code?, zone?, success}
 let victoryMsg = '';
 
 const TOAST_MS = 3500;
@@ -572,8 +680,7 @@ let dragStartX    = 0;
 let dragStartPan  = 0;
 let lastMoveX     = 0;
 let lastMoveT     = 0;
-let curStep       = 0;
-let curPhase      = 'code';
+let curStep       = 0;   // index dans STEPS (plus de curPhase : c'est step.type qui sert)
 let codeInput     = '';
 let won           = false;
 let hintShown     = false;
@@ -696,14 +803,14 @@ function onTouchEnd(e) {
 //  CLICK / ZONE CHECK
 // ═══════════════════════════════════════════════════════════
 function handleClick(e) {
-  if (won || curPhase !== 'click') return;
+  const step = STEPS[curStep];
+  if (won || !step || step.type !== 'click') return;
+
   const rect = getVP().getBoundingClientRect();
   const { px, py } = screenToPano(e.clientX - rect.left, e.clientY - rect.top);
-  const step = STEPS[curStep];
   const z = step.zone;
   if (!z || z.w === 0) return;
 
-  // Tolérance tactile : 20px écran converti en coordonnées image
   const sc  = getScale();
   const PAD = window.matchMedia('(pointer: coarse)').matches ? Math.round(20 / sc) : 0;
   const hit = px >= z.x - PAD && px <= z.x + z.w + PAD &&
@@ -712,30 +819,38 @@ function handleClick(e) {
   spawnRipple(e.clientX - rect.left, e.clientY - rect.top, hit ? 'ok' : 'ko');
 
   if (hit) {
-    showToast(step.successFinal || 'Bien trouvé !', 'ok');
-    curStep++;
-    if (curStep >= STEPS.length) {
-      won = true;
-      clearInterval(timerInterval);
-      clearSave();
-      closeClue();
-      const h = Math.floor(timerSeconds / 3600);
-      const m = Math.floor((timerSeconds % 3600) / 60);
-      const s = timerSeconds % 60;
-      document.getElementById('victory-name').textContent = playerName;
-      document.getElementById('victory-time').textContent =
-        `${h}h ${String(m).padStart(2,'0')}min ${String(s).padStart(2,'0')}s`;
-      document.getElementById('victory-msg').textContent =
-        victoryMsg || 'Vous avez retrouvé toutes les preuves. Le village peut reprendre son souffle.';
-      setTimeout(() => { document.getElementById('victory').style.display = 'flex'; }, 2200);
-    } else {
-      saveProgress();
-      setTimeout(() => showPhase('code'), 1900);
-    }
+    showToast(step.success || 'Bien trouvé !', 'ok');
+    advanceStep(2200);
   } else {
     applyPenalty();
     showToast("Ce n'est pas là… −1 minute !", 'ko');
   }
+}
+
+function advanceStep(delay) {
+  curStep++;
+  if (curStep >= STEPS.length) {
+    triggerVictory(delay);
+  } else {
+    saveProgress();
+    setTimeout(() => showChallenge(curStep), delay);
+  }
+}
+
+function triggerVictory(delay) {
+  won = true;
+  clearInterval(timerInterval);
+  clearSave();
+  closeClue();
+  const h = Math.floor(timerSeconds / 3600);
+  const m = Math.floor((timerSeconds % 3600) / 60);
+  const s = timerSeconds % 60;
+  document.getElementById('victory-name').textContent = playerName;
+  document.getElementById('victory-time').textContent =
+    `${h}h ${String(m).padStart(2,'0')}min ${String(s).padStart(2,'0')}s`;
+  document.getElementById('victory-msg').textContent =
+    victoryMsg || 'Vous avez retrouvé toutes les preuves. Le village peut reprendre son souffle.';
+  setTimeout(() => { document.getElementById('victory').style.display = 'flex'; }, delay);
 }
 
 function spawnRipple(x, y, cls) {
@@ -747,26 +862,29 @@ function spawnRipple(x, y, cls) {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  PHASE MANAGEMENT
+//  CHALLENGE ENGINE  (remplace showPhase)
 // ═══════════════════════════════════════════════════════════
-function showPhase(phase) {
-  curPhase = phase;
-  const step = STEPS[curStep];
+function showChallenge(n) {
+  curStep = n;
+  const step = STEPS[n];
   if (!step) return;
-  setStepImage(step);
 
-  const lbl = `Énigme ${curStep + 1} / ${STEPS.length}`;
+  // Charge l'image si ce défi en définit une
+  if (step.image) setStepImage(step);
+
+  const total = STEPS.length;
+  const lbl   = `Défi ${n + 1} / ${total}`;
   document.getElementById('prog-txt').textContent = lbl;
   document.querySelectorAll('.sd').forEach((d, i) => {
-    d.className = 'sd' + (i < curStep ? ' done' : '') + (i === curStep ? ' cur' : '');
+    d.className = 'sd' + (i < n ? ' done' : '') + (i === n ? ' cur' : '');
   });
 
-  if (phase === 'code' && step.code) {
+  if (step.type === 'code') {
     document.getElementById('phase-badge').textContent = '🔐 Code';
     document.getElementById('phase-badge').className = 'code';
     codeInput = '';
     document.getElementById('cm-lbl').textContent = lbl;
-    document.getElementById('cm-clue-txt').textContent = renderClue(step.clue);
+    document.getElementById('cm-clue-txt').textContent = renderClue(step.clue || '');
     document.getElementById('cm-error').textContent = '';
     renderCodeDisplay();
     document.getElementById('code-modal').classList.remove('hidden');
@@ -774,26 +892,28 @@ function showPhase(phase) {
     document.getElementById('clue-toggle').classList.remove('visible');
     saveProgress();
   } else {
-    curPhase = 'click';
+    // type === 'click'
     document.getElementById('phase-badge').textContent = '🗺 Trouver';
     document.getElementById('phase-badge').className = 'click';
     document.getElementById('code-modal').classList.add('hidden');
 
-    // Vérification de la zone
     const z = step.zone;
     if (!z || z.w === 0) {
-      showToast('Zone non définie pour cette étape — étape ignorée.', 'ko');
-      curStep++;
-      if (curStep < STEPS.length) setTimeout(() => showPhase('code'), 2200);
+      showToast('Zone non définie — défi ignoré.', 'ko');
+      if (n + 1 < STEPS.length) setTimeout(() => showChallenge(n + 1), 2200);
       return;
     }
 
-    const clue2text = step.success || step.clue;
-    document.getElementById('clue-txt').textContent = renderClue(clue2text);
+    document.getElementById('clue-txt').textContent = renderClue(step.clue || '');
     document.getElementById('clue-lbl').textContent = lbl;
     openClue();
     saveProgress();
   }
+
+  const hasHint = !!(step.hint && step.hint.trim());
+  document.getElementById('cm-hint-row').style.display   = (step.type === 'code'  && hasHint) ? 'block' : 'none';
+  document.getElementById('vp-hint-btn').style.display   = (step.type === 'click' && hasHint) ? 'block' : 'none';
+  document.getElementById('hint-popup').classList.add('hidden');
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -830,7 +950,7 @@ function validateCode() {
   if (!codeInput.length) return;
   if (codeInput === expected) {
     showToast(step.success || 'Code correct !', 'ok');
-    setTimeout(() => showPhase('click'), 1200);
+    advanceStep(1200);
   } else {
     document.getElementById('cm-error').textContent =
       `Code incorrect — ${codeInput.length < expected.length ? 'trop court' : 'réessaie'} (−1 min)`;
@@ -848,7 +968,7 @@ function validateCode() {
 }
 
 document.addEventListener('keydown', e => {
-  if (curPhase === 'code' && !document.getElementById('code-modal').classList.contains('hidden')) {
+  if (STEPS[curStep]?.type === 'code' && !document.getElementById('code-modal').classList.contains('hidden')) {
     if (e.key === 'Backspace') { e.preventDefault(); backspace(); return; }
     if (e.key === 'Enter')     { e.preventDefault(); validateCode(); return; }
     if (/^[a-zA-Z]$/.test(e.key)) { pressKey(e.key.toUpperCase()); return; }
@@ -865,6 +985,28 @@ function openClue() {
 function closeClue() {
   document.getElementById('clue-popup').classList.add('hidden');
   document.getElementById('clue-toggle').classList.add('visible');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  HINT
+// ═══════════════════════════════════════════════════════════
+function openHintConfirm() {
+  const step = STEPS[curStep];
+  if (!step || !step.hint || !step.hint.trim()) return;
+  document.getElementById('hint-confirm').classList.add('show');
+}
+function closeHintConfirm() {
+  document.getElementById('hint-confirm').classList.remove('show');
+}
+function confirmHint() {
+  closeHintConfirm();
+  applyPenalty();
+  const step = STEPS[curStep];
+  document.getElementById('hint-txt').textContent = renderClue(step?.hint || '');
+  document.getElementById('hint-popup').classList.remove('hidden');
+}
+function closeHint() {
+  document.getElementById('hint-popup').classList.add('hidden');
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -941,7 +1083,7 @@ function saveProgress() {
   if (!gameStarted || won) return;
   try {
     localStorage.setItem('escape_game_save', JSON.stringify({
-      playerName, curStep, timerSeconds, curPhase
+      playerName, curStep, timerSeconds
     }));
   } catch(e) {}
 }
@@ -965,7 +1107,7 @@ function resumeGame() {
   playerName   = save.playerName;
   curStep      = Math.min(save.curStep || 0, STEPS.length - 1);
   timerSeconds = save.timerSeconds || 3600;
-  launchGame(save.curPhase || 'code');
+  launchGame(curStep);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -976,14 +1118,16 @@ async function loadConfig() {
     const cfg = await fetch('game_config.json').then(r => r.json());
     victoryMsg = cfg.victoryMessage || '';
     STEPS = (cfg.steps || []).map(s => ({
-      image:        s.image        || '',
-      imageWidth:   s.imageWidth   || PANO_W,
-      imageHeight:  s.imageHeight  || PANO_H,
-      clue:         s.clue         || '',
-      code:         (s.code        || '').toUpperCase().trim(),
-      success:      s.success      || '',
-      successFinal: s.successFinal || 'Bien trouvé !',
-      zone:         s.zone         || { x:0, y:0, w:0, h:0 },
+      type:        s.type || 'code',
+      image:       s.image       || '',
+      imageWidth:  s.imageWidth  || 0,
+      imageHeight: s.imageHeight || 0,
+      clue:        s.clue        || '',
+      code:        (s.code || '').toUpperCase().trim(),
+      zone:        s.zone || null,
+      // compatibilité ancien format : successFinal → success pour les clics
+      success:     s.success || s.successFinal || 'Bien trouvé !',
+      hint:        s.hint || '',
     }));
   } catch {
     document.getElementById('cfg-missing').style.display = 'block';
@@ -1019,10 +1163,11 @@ function startGame() {
   playerName   = document.getElementById('player-name-input').value.trim() || 'Joueur';
   timerSeconds = 3600;
   clearSave();
-  launchGame('code');
+  launchGame(0);
 }
 
-function launchGame(initialPhase = 'code') {
+function launchGame(startStep = 0) {
+  curStep = startStep;
   document.getElementById('welcome').style.display = 'none';
   document.getElementById('game').style.display = 'flex';
   document.getElementById('hdr-ttl').textContent = `Village Mystère · ${playerName}`;
@@ -1056,7 +1201,7 @@ function launchGame(initialPhase = 'code') {
 
   requestAnimationFrame(() => applyPan(0));
   startTimer(timerSeconds);
-  showPhase(initialPhase);
+  showChallenge(curStep);
 }
 
 function restartGame() {
@@ -1066,7 +1211,7 @@ function restartGame() {
   document.getElementById('game-over').style.display = 'none';
   applyPan(0);
   startTimer(3600);
-  showPhase('code');
+  showChallenge(0);
 }
 
 loadConfig().then(() => {

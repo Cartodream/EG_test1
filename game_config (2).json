@@ -1,0 +1,28 @@
+{
+  "panorama": "Image2.png",
+  "panoramaWidth": 1360,
+  "panoramaHeight": 972,
+  "steps": [
+    {
+      "order": 1,
+      "clue": "",
+      "code": "",
+      "success": "",
+      "successFinal": "",
+      "zone": null
+    },
+    {
+      "order": 2,
+      "clue": "On va testter un truc Tape BILOUTE",
+      "code": "BILOUTE",
+      "success": "Bien joué clique ici",
+      "successFinal": "bien joué",
+      "zone": {
+        "x": 906,
+        "y": 732,
+        "w": 83,
+        "h": 115
+      }
+    }
+  ]
+}

@@ -220,9 +220,60 @@
     .zone-color-4 .zone-lbl { background: #a87ce8; }
     .zone-color-5 { border-color: #e8d45c; background: rgba(232,212,92,.08); }
     .zone-color-5 .zone-lbl { background: #e8d45c; }
+
+    /* ── STARTUP SCREEN ── */
+    #startup-screen {
+      position: fixed; inset: 0; z-index: 999;
+      background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+    }
+    #startup-screen.hidden { display: none; }
+    .ss-box { text-align: center; max-width: 400px; width: 90%; }
+    .ss-logo { font-size: .68rem; letter-spacing: .45em; color: var(--gold); text-transform: uppercase; margin-bottom: .4rem; }
+    .ss-title { font-size: 1.6rem; font-weight: normal; color: var(--text); margin-bottom: .3rem; letter-spacing: .05em; }
+    .ss-sub { font-size: .72rem; color: var(--muted); letter-spacing: .2em; text-transform: uppercase; margin-bottom: 2.8rem; }
+    .ss-btns { display: flex; flex-direction: column; gap: 10px; }
+    .ss-btn {
+      background: var(--surf); border: 1px solid var(--border); color: var(--text);
+      padding: 16px 20px; cursor: pointer; font-family: inherit;
+      display: flex; align-items: center; gap: 14px;
+      transition: border-color .15s, background .15s;
+      text-align: left;
+    }
+    .ss-btn:hover { border-color: var(--gold); background: var(--gold-d); }
+    .ss-btn .ss-icon { font-size: 1.4rem; flex-shrink: 0; }
+    .ss-btn .ss-label { display: flex; flex-direction: column; gap: 2px; }
+    .ss-btn .ss-label strong { font-size: .88rem; letter-spacing: .06em; }
+    .ss-btn .ss-label span { font-size: .68rem; color: var(--muted); letter-spacing: .1em; }
+    .ss-btn:hover .ss-label span { color: inherit; }
   </style>
 </head>
 <body>
+
+<!-- STARTUP SCREEN -->
+<div id="startup-screen">
+  <div class="ss-box">
+    <div class="ss-logo">Escape Game</div>
+    <div class="ss-title">Maître du jeu</div>
+    <div class="ss-sub">Éditeur de scénario</div>
+    <div class="ss-btns">
+      <button class="ss-btn" onclick="startupImport()">
+        <span class="ss-icon">📂</span>
+        <span class="ss-label">
+          <strong>Ouvrir un projet existant</strong>
+          <span>Importer un fichier game_config.json</span>
+        </span>
+      </button>
+      <button class="ss-btn" onclick="startupNew()">
+        <span class="ss-icon">✨</span>
+        <span class="ss-label">
+          <strong>Nouveau projet vide</strong>
+          <span>Partir de zéro et créer les défis</span>
+        </span>
+      </button>
+    </div>
+  </div>
+</div>
 
 <!-- TOOLBAR -->
 <div id="toolbar">
@@ -257,8 +308,11 @@
   <!-- SIDEBAR -->
   <div id="sidebar">
     <div id="sb-header">
-      <span class="ttl">Étapes du jeu</span>
-      <button id="btn-add" onclick="addStep()">+ Nouvelle</button>
+      <span class="ttl">Défis du jeu</span>
+      <div style="display:flex;gap:4px">
+        <button id="btn-add-code"  onclick="addStep('code')"  title="Ajouter un défi Code">+ Code</button>
+        <button id="btn-add-click" onclick="addStep('click')" title="Ajouter un défi Clic">+ Clic</button>
+      </div>
     </div>
 
     <div id="steps-list">
@@ -269,45 +323,63 @@
     </div>
 
     <div id="edit-panel">
-      <div class="form-ttl">Édition de l'étape <span id="edit-num">—</span></div>
+      <div class="form-ttl">Défi <span id="edit-num">—</span> — <span id="edit-type" style="font-style:normal"></span></div>
+
+      <!-- Image optionnelle (tous types) -->
       <div class="form-row">
-        <label>Image de l'étape</label>
-        <div style="display:flex;gap:6px;align-items:center">
-          <span id="f-image-name" style="flex:1;font-size:.72rem;color:var(--gold);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">— aucune image —</span>
+        <label>Image <span id="f-img-hint" style="font-size:.65rem;color:var(--muted)">(optionnelle)</span></label>
+        <div style="display:flex;gap:5px;align-items:center">
+          <span id="f-image-name" style="flex:1;font-size:.72rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)">— aucune image —</span>
           <button class="tool-btn" style="padding:3px 9px;font-size:.72rem;white-space:nowrap"
                   onclick="document.getElementById('step-img-input').click()">📁 Choisir</button>
+          <button class="tool-btn" id="btn-clear-img" title="Retirer l'image" onclick="clearStepImage()"
+                  style="padding:3px 7px;font-size:.78rem">✕</button>
         </div>
         <input type="file" id="step-img-input" accept="image/*" style="display:none" onchange="loadStepImage(event)">
       </div>
+
+      <!-- Texte principal : énigme (code) ou instruction (clic) -->
       <div class="form-row">
-        <label>Phase 1 — Énigme / indice affiché</label>
-        <textarea id="f-clue" placeholder="Ex : À l'école on utilisait un code secret. Déchiffre : JXHUUH"
-                  oninput="updateCluePreview()"></textarea>
-        <div style="font-size:.66rem;color:var(--muted);margin-top:3px;line-height:1.5">
+        <label id="f-clue-lbl">Énigme / indice</label>
+        <textarea id="f-clue" oninput="updateCluePreview()"></textarea>
+        <div id="clue-hint" style="font-size:.66rem;color:var(--muted);margin-top:3px;line-height:1.5">
           Placeholders : <code style="color:var(--gold)">{name}</code> → prénom brut &nbsp;|&nbsp;
           <code style="color:var(--gold)">{name_encoded}</code> → prénom chiffré César +3
         </div>
         <div id="clue-preview" style="display:none;margin-top:5px;font-size:.72rem;background:rgba(201,162,39,.08);border-left:2px solid var(--gold);padding:5px 8px;color:var(--text);font-style:italic;white-space:pre-line;line-height:1.5"></div>
       </div>
-      <div class="form-row">
-        <label>Phase 1 — Code attendu (mot en clair, ex: GUERRE)</label>
-        <input type="text" id="f-code" placeholder="GUERRE" style="text-transform:uppercase;letter-spacing:.15em">
+
+      <!-- Section CODE uniquement -->
+      <div id="section-code">
+        <div class="form-row">
+          <label>Code attendu (mot en clair)</label>
+          <input type="text" id="f-code" placeholder="GUERRE" style="text-transform:uppercase;letter-spacing:.15em">
+        </div>
       </div>
-      <div class="form-row">
-        <label>Phase 2 — Instruction après le code (affiché dans la popup indice)</label>
-        <textarea id="f-success" placeholder="Ex : Bien joué ! Trouve maintenant l'endroit lié à la Guerre."></textarea>
+
+      <!-- Section CLIC uniquement -->
+      <div id="section-click" style="display:none">
+        <div class="form-row">
+          <label>Zone cliquable (tracer avec le mode Dessiner)</label>
+          <div class="zone-coords empty" id="f-zone-display">— pas encore définie —</div>
+        </div>
       </div>
+
+      <!-- Message de succès (tous types) -->
       <div class="form-row">
-        <label>Phase 2 — Message après le clic correct</label>
-        <textarea id="f-successfinal" placeholder="Ex : Excellent ! La première capsule est découverte."></textarea>
+        <label>Message de succès (toast)</label>
+        <textarea id="f-success" placeholder="Ex : Bien joué !"></textarea>
       </div>
+
+      <!-- Indice optionnel (tous types) -->
       <div class="form-row">
-        <label>Zone cliquable (tracer avec le mode Dessiner)</label>
-        <div class="zone-coords empty" id="f-zone-display">— pas encore définie —</div>
+        <label style="color:var(--muted)">Indice optionnel <span style="font-weight:normal;font-style:italic">(coûte −1 min au joueur)</span></label>
+        <textarea id="f-hint" placeholder="Ex : C'est le contraire de la paix…" style="color:var(--muted)"></textarea>
       </div>
+
       <div class="form-btns">
         <button id="btn-save"   onclick="saveStep()">Enregistrer</button>
-        <button id="btn-redraw" onclick="startRedraw()">↺ Retracer</button>
+        <button id="btn-redraw" onclick="startRedraw()" style="display:none">↺ Retracer</button>
         <button id="btn-del"    onclick="deleteStep()">Supprimer</button>
       </div>
     </div>
@@ -565,14 +637,14 @@ function updateZoneDisplay(zone) {
 }
 
 // ═══════════════════════════════════════════════════════
-//  IMAGE PAR ÉTAPE
+//  IMAGE PAR DÉFI (avec héritage pour les défis clic)
 // ═══════════════════════════════════════════════════════
 function onImgLoad() {
   const img = document.getElementById('pano-img');
   PANO_W = img.naturalWidth;
   PANO_H = img.naturalHeight;
-  // Mettre à jour les dimensions dans l'étape active
-  if (selectedId !== null) {
+  // Ne met à jour les dimensions que si c'est l'image propre du défi sélectionné
+  if (img.dataset.isOwnImage === '1' && selectedId !== null) {
     const step = steps.find(s => s.id === selectedId);
     if (step) { step.imageWidth = PANO_W; step.imageHeight = PANO_H; autoSave(); }
   }
@@ -580,27 +652,69 @@ function onImgLoad() {
   renderZones();
 }
 
+function getInheritedImage(stepId) {
+  const idx = steps.findIndex(s => s.id === stepId);
+  for (let i = idx - 1; i >= 0; i--) {
+    const s = steps[i];
+    if (s._blobUrl || s.image) return s;
+  }
+  return null;
+}
+
 function loadStepImage(event) {
   const file = event.target.files[0];
   if (!file || selectedId === null) return;
   const step = steps.find(s => s.id === selectedId);
   if (!step) return;
-  step.image   = file.name;
+  if (step._blobUrl) URL.revokeObjectURL(step._blobUrl);
+  step.image    = file.name;
   step._blobUrl = URL.createObjectURL(file);
-  document.getElementById('f-image-name').textContent = file.name;
   const img = document.getElementById('pano-img');
+  img.dataset.isOwnImage = '1';
   img.style.display = 'none';
   img.src = step._blobUrl;
+  document.getElementById('f-image-name').textContent = file.name;
+  document.getElementById('f-image-name').style.color = 'var(--gold)';
   event.target.value = '';
   toast(`Image : ${file.name}`, 'ok');
 }
 
+function clearStepImage() {
+  if (selectedId === null) return;
+  const step = steps.find(s => s.id === selectedId);
+  if (!step) return;
+  if (step._blobUrl) { URL.revokeObjectURL(step._blobUrl); delete step._blobUrl; }
+  step.image = ''; step.imageWidth = 0; step.imageHeight = 0;
+  showStepImage(step);
+  autoSave();
+}
+
 function showStepImage(step) {
   const img = document.getElementById('pano-img');
-  const src = step._blobUrl || step.image || '';
-  document.getElementById('f-image-name').textContent = step.image || '— aucune image —';
+  const nameEl = document.getElementById('f-image-name');
+  let src = step._blobUrl || step.image || '';
+  let w = step.imageWidth || 0, h = step.imageHeight || 0;
+  let isOwn = !!src;
+
+  if (!src) {
+    const parent = getInheritedImage(step.id);
+    if (parent) {
+      src = parent._blobUrl || parent.image;
+      w = parent.imageWidth || 0; h = parent.imageHeight || 0;
+      nameEl.textContent  = `(héritée : ${parent.image || '…'})`;
+      nameEl.style.color  = 'var(--muted)';
+    } else {
+      nameEl.textContent  = '— aucune image —';
+      nameEl.style.color  = 'var(--muted)';
+    }
+  } else {
+    nameEl.textContent = step.image || 'image chargée';
+    nameEl.style.color = 'var(--gold)';
+  }
+
   if (!src) { img.style.display = 'none'; img.src = ''; return; }
-  if (step.imageWidth) { PANO_W = step.imageWidth; PANO_H = step.imageHeight; }
+  if (w) { PANO_W = w; PANO_H = h; }
+  img.dataset.isOwnImage = isOwn ? '1' : '0';
   img.style.display = 'none';
   img.src = src;
 }
@@ -608,13 +722,14 @@ function showStepImage(step) {
 // ═══════════════════════════════════════════════════════
 //  STEPS CRUD
 // ═══════════════════════════════════════════════════════
-function addStep() {
-  const step = { id: nextId++, image: '', imageWidth: 0, imageHeight: 0,
-                 clue: '', code: '', success: '', successFinal: '', zone: null };
+function addStep(type = 'code') {
+  const step = { id: nextId++, type,
+                 image: '', imageWidth: 0, imageHeight: 0,
+                 clue: '', code: '', zone: null, success: '', hint: '' };
   steps.push(step);
   renderList();
   selectStep(step.id);
-  toast('Nouvelle étape créée. Choisis une image puis trace la zone cliquable.', 'info');
+  toast(`Défi ${type === 'code' ? 'Code' : 'Clic'} créé.`, 'info');
   autoSave();
 }
 
@@ -623,11 +738,28 @@ function selectStep(id) {
   const step = steps.find(s => s.id === id);
   if (!step) return;
 
-  document.getElementById('edit-num').textContent  = steps.indexOf(step) + 1;
-  document.getElementById('f-clue').value          = step.clue;
-  document.getElementById('f-code').value          = step.code || '';
-  document.getElementById('f-success').value       = step.success;
-  document.getElementById('f-successfinal').value  = step.successFinal || '';
+  const isCode  = step.type !== 'click';
+  const isClick = step.type === 'click';
+
+  document.getElementById('edit-num').textContent = steps.indexOf(step) + 1;
+  const typeEl = document.getElementById('edit-type');
+  typeEl.textContent = isCode ? '🔐 Code' : '🗺 Clic';
+  typeEl.style.color = isCode ? 'var(--gold)' : 'var(--ok)';
+
+  document.getElementById('f-clue-lbl').textContent = isCode
+    ? 'Énigme / indice (phase code)'
+    : 'Instruction (affichée dans le popup)';
+  document.getElementById('clue-hint').style.display = isCode ? '' : 'none';
+
+  document.getElementById('f-clue').value    = step.clue    || '';
+  document.getElementById('f-code').value    = step.code    || '';
+  document.getElementById('f-success').value = step.success || '';
+  document.getElementById('f-hint').value    = step.hint    || '';
+
+  document.getElementById('section-code').style.display  = isCode  ? '' : 'none';
+  document.getElementById('section-click').style.display = isClick ? '' : 'none';
+  document.getElementById('btn-redraw').style.display    = isClick ? '' : 'none';
+
   updateZoneDisplay(step.zone);
   showStepImage(step);
   document.getElementById('edit-panel').classList.add('visible');
@@ -640,13 +772,15 @@ function saveStep() {
   if (selectedId === null) return;
   const step = steps.find(s => s.id === selectedId);
   if (!step) return;
-  step.clue         = document.getElementById('f-clue').value.trim();
-  step.code         = document.getElementById('f-code').value.trim().toUpperCase();
-  step.success      = document.getElementById('f-success').value.trim();
-  step.successFinal = document.getElementById('f-successfinal').value.trim();
+  step.clue    = document.getElementById('f-clue').value.trim();
+  step.success = document.getElementById('f-success').value.trim();
+  step.hint    = document.getElementById('f-hint').value.trim();
+  if (step.type !== 'click') {
+    step.code = document.getElementById('f-code').value.trim().toUpperCase();
+  }
   renderList();
   autoSave();
-  toast('Étape enregistrée.', 'ok');
+  toast('Défi enregistré.', 'ok');
 }
 
 function deleteStep() {
@@ -682,8 +816,8 @@ function renderList() {
   const el = document.getElementById('steps-list');
   if (steps.length === 0) {
     el.innerHTML = `<div style="color:var(--muted);font-size:.78rem;padding:10px;text-align:center;line-height:1.6">
-      Crée ta première étape avec<br>le bouton <b>+ Nouvelle</b>.<br><br>
-      Puis passe en mode <b>Dessiner zone</b><br>et trace le rectangle sur le panorama.</div>`;
+      Crée un défi avec<br><b>+ Code</b> ou <b>+ Clic</b>.<br><br>
+      Les défis se chaînent librement<br>dans l'ordre de la liste.</div>`;
     return;
   }
   el.innerHTML = '';
@@ -691,17 +825,20 @@ function renderList() {
     const div = document.createElement('div');
     div.className = 'step-item' + (step.id === selectedId ? ' active' : '');
     div.onclick = () => selectStep(step.id);
-    const zoneStr = step.zone
-      ? `x:${step.zone.x} y:${step.zone.y} w:${step.zone.w} h:${step.zone.h}`
-      : 'aucune zone';
+    const isCode = step.type !== 'click';
+    const badge  = isCode ? '🔐 CODE' : '🗺 CLIC';
+    const color  = isCode ? 'var(--gold)' : 'var(--ok)';
+    const detail = isCode
+      ? (step.code ? `code : ${step.code}` : '<em style="color:var(--ko)">code vide</em>')
+      : (step.zone ? `x:${step.zone.x} y:${step.zone.y} w:${step.zone.w} h:${step.zone.h}` : '<em style="color:var(--ko)">aucune zone</em>');
     div.innerHTML = `
-      <div class="step-num">ÉTAPE ${i + 1}</div>
-      <div class="step-clue">${step.clue || '<em style="color:var(--muted)">indice non renseigné</em>'}</div>
-      <div class="step-zone">${zoneStr}</div>
+      <div class="step-num" style="color:${color}">${badge} — DÉFI ${i + 1}</div>
+      <div class="step-clue">${step.clue || '<em style="color:var(--muted)">texte vide</em>'}</div>
+      <div class="step-zone">${detail}</div>
       <div class="step-actions">
         <button onclick="event.stopPropagation();moveStep(${step.id},-1)">▲</button>
         <button onclick="event.stopPropagation();moveStep(${step.id},+1)">▼</button>
-        <button class="del" onclick="event.stopPropagation();selectedId=${step.id};deleteStep()">✕ Suppr.</button>
+        <button class="del" onclick="event.stopPropagation();selectedId=${step.id};deleteStep()">✕</button>
       </div>`;
     el.appendChild(div);
   });
@@ -744,17 +881,14 @@ function renderZones() {
 function buildConfig() {
   return {
     victoryMessage: document.getElementById('f-victory-msg').value.trim(),
-    steps: steps.map((s, i) => ({
-      order:        i + 1,
-      image:        s.image        || '',
-      imageWidth:   s.imageWidth   || 0,
-      imageHeight:  s.imageHeight  || 0,
-      clue:         s.clue,
-      code:         s.code,
-      success:      s.success,
-      successFinal: s.successFinal,
-      zone:         s.zone,
-    }))
+    steps: steps.map(s => {
+      const obj = { type: s.type, clue: s.clue, success: s.success };
+      if (s.hint)           obj.hint = s.hint;
+      if (s.image)          { obj.image = s.image; obj.imageWidth = s.imageWidth || 0; obj.imageHeight = s.imageHeight || 0; }
+      if (s.type !== 'click' && s.code) obj.code = s.code;
+      if (s.type === 'click' && s.zone)  obj.zone = s.zone;
+      return obj;
+    })
   };
 }
 
@@ -791,6 +925,7 @@ function importJSON(event) {
     try {
       const cfg = JSON.parse(e.target.result);
       loadConfig(cfg);
+      dismissStartup();
       toast(`${cfg.steps.length} étape(s) importée(s).`, 'ok');
     } catch(err) {
       toast('Erreur de lecture du JSON.', 'ko');
@@ -800,20 +935,26 @@ function importJSON(event) {
   event.target.value = '';
 }
 
+// Normalise les étapes : gère l'ancien format (code+zone dans une seule étape)
+// et le nouveau format (liste plate de défis typés)
+function normalizeSteps(rawSteps) {
+  const result = [];
+  rawSteps.forEach(s => {
+    if (!s.type && s.code && s.zone) {
+      // Ancien format → split automatique en défi code + défi clic
+      result.push({ id: nextId++, type: 'code', image: s.image || '', imageWidth: s.imageWidth || 0, imageHeight: s.imageHeight || 0, clue: s.clue || '', code: s.code, zone: null, success: s.success || '', hint: s.hint || '' });
+      result.push({ id: nextId++, type: 'click', image: '', imageWidth: 0, imageHeight: 0, clue: s.success || '', code: '', zone: s.zone, success: s.successFinal || '', hint: '' });
+    } else {
+      result.push({ id: s.id || nextId++, type: s.type || 'code', image: s.image || '', imageWidth: s.imageWidth || 0, imageHeight: s.imageHeight || 0, clue: s.clue || '', code: s.code || '', zone: s.zone || null, success: s.success || '', hint: s.hint || '' });
+    }
+  });
+  return result;
+}
+
 function loadConfig(cfg) {
   victoryMessage = cfg.victoryMessage || '';
   document.getElementById('f-victory-msg').value = victoryMessage;
-  steps = (cfg.steps || []).map((s, i) => ({
-    id:           nextId++,
-    image:        s.image        || '',
-    imageWidth:   s.imageWidth   || 0,
-    imageHeight:  s.imageHeight  || 0,
-    clue:         s.clue         || '',
-    code:         s.code         || '',
-    success:      s.success      || '',
-    successFinal: s.successFinal || '',
-    zone:         s.zone         || null,
-  }));
+  steps = normalizeSteps(cfg.steps || []);
   selectedId = null;
   document.getElementById('edit-panel').classList.remove('visible');
   document.getElementById('pano-img').style.display = 'none';
@@ -821,6 +962,7 @@ function loadConfig(cfg) {
   renderList();
   renderZones();
   if (steps.length > 0) selectStep(steps[0].id);
+  autoSave();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -838,14 +980,14 @@ function loadFromStorage() {
     const raw = localStorage.getItem('escape_editor');
     if (!raw) return;
     const data = JSON.parse(raw);
-    steps          = data.steps  || [];
+    steps          = normalizeSteps(data.steps || []);
     nextId         = data.nextId || (steps.length + 1);
     victoryMessage = data.victoryMessage || '';
     document.getElementById('f-victory-msg').value = victoryMessage;
     renderList();
     renderZones();
     if (steps.length > 0) {
-      toast(`${steps.length} étape(s) restaurée(s) depuis la session précédente.`, 'info');
+      toast(`${steps.length} défi(s) restauré(s) depuis la session précédente.`, 'info');
       selectStep(steps[0].id);
     }
   } catch(e) {}
@@ -893,10 +1035,24 @@ function toast(msg, type = 'info') {
 }
 
 // ═══════════════════════════════════════════════════════
+//  STARTUP
+// ═══════════════════════════════════════════════════════
+function dismissStartup() {
+  document.getElementById('startup-screen').classList.add('hidden');
+}
+function startupNew() {
+  dismissStartup();
+}
+function startupImport() {
+  const fi = document.getElementById('file-input');
+  fi.onchange = e => { importJSON(e); fi.onchange = null; };
+  fi.click();
+}
+
+// ═══════════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════════
 applyPan(0);
-loadFromStorage();
 </script>
 </body>
 </html>
