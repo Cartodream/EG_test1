@@ -1,0 +1,36 @@
+{
+  "steps": [
+    {
+      "order": 1,
+      "image": "1ère image.png",
+      "imageWidth": 1360,
+      "imageHeight": 972,
+      "clue": "J'ai besoin de toi {name_encoded}. Tu te rappelles qu'à l'école nous communiquions via un code secret. Voici l'indice pour trouver la première capsule : \"JXHUUH\"",
+      "code": "GUERRE",
+      "success": "Bien joué ! À toi de trouver maintenant l'endroit lié à la Guerre sur cette image.",
+      "successFinal": "Excellent ! Tu as découvert la première capsule. L'enquête continue vers la Mairie, courage !",
+      "zone": {
+        "x": 776,
+        "y": 585,
+        "w": 47,
+        "h": 123
+      }
+    },
+    {
+      "order": 2,
+      "image": "Image2.png",
+      "imageWidth": 844,
+      "imageHeight": 681,
+      "clue": "Résume ce poème en un mot : \n\nLibre comme l'oiseau,\nImmense comme l'horizon,\nVivant comme l'enfant,\nRugueux comme la pierre,\nEclatant comme le soleil.\n\nQui suis-je ?",
+      "code": "LIVRE",
+      "success": "Génial, tu devrais être en mesure de trouver où j'ai caché la seconde capsule",
+      "successFinal": "Excellent ! Tu y es presque, rendez vous à l'étang pour la lettre finale",
+      "zone": {
+        "x": 627,
+        "y": 503,
+        "w": 79,
+        "h": 118
+      }
+    }
+  ]
+}
